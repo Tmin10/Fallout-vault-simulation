@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Fallout vault simulation</title>
+    <script type="text/javascript">
+    	function Dweller(id, mother, father)
+    	{
+    		this.alive = 1;
+    		this.id = id;
+    		this.mother = mother;
+    		this.father = father;
+    		if (GetTrueWithProbability(50))
+    		{
+    			this.sex = 'male';
+    		}
+    		else
+    		{
+    			this.sex = 'female';
+    		}
+    		this.partner = null;
+    		this.age = 0;
+
+    		//for woman
+    		this.pregnant = 0;
+    		this.father_of_child = null;
+    		this.count_of_child = 0;
+    	};
+
+    	//TODO: this function need to check correction
+    	//Probability in percents
+    	function GetTrueWithProbability(probability)
+    	{
+    		if (Math.random() * 100 < probability)
+    		{
+    			return true;
+    		}
+    		else
+    		{
+    			return false;
+    		}
+    	}
+
+    	window.onload = function() 
+    	{
+    		var WAR_YEAR = 2077;
+    		var DWELLERS_COUNT = 100;
+    		var VAULT_MAX_CAPACITY = 150;
+
+    		//TODO need correction for age of mother and previous pregnancy
+    		var PROBABILITY_OF_TWINS = 1.5;
+    		var PROBABILITY_OF_TRIPLETS = 0.022;
+
+    		var AGE_OF_MAJORITY = 18;
+    		var AGE_OF_PARTNERSHIP = 15;
+    		var OLD_AGE_START = 70;
+			var OLD_AGE_END = 100;
+			var AGE_OF_MENOPAUSE = 50;
+
+    		var PROBABILITY_OF_PARTNERSHIP = 5;
+    		var PROBABILITY_OF_FIRST_PREGNANCY = 50;
+    		var PROBABILITY_OF_SECOND_PREGNANCY = 40;
+    		var PROBABILITY_OF_PARTIONG = 5;
+
+    		var PROBABILITY_OF_ACCIDENT = 0.01;
+
+    		var dwellers = [];
+    		var dwellers_alive = DWELLERS_COUNT;
+    		
+    		for (i = 0; i < DWELLERS_COUNT; i++)
+    		{
+    			dwellers[i] = new Dweller(i, null, null);
+    			dwellers[i].age = Math.round(Math.random()*30+20);
+    		}
+
+    		//variables for year statistics
+    		var born = 0;
+			var partners = 0;
+			var pregnant = 0;
+			var single = 0;
+			var death_accident = 0;
+			var old_death = 0;
+			var twins = 0;
+			var triplets = 0;
+
+			var year = WAR_YEAR;
+
+    		while (dwellers_alive > 0 && year < WAR_YEAR + 1000)
+    		{
+    			born = 0;
+    			partners = 0;
+    			pregnant = 0;
+    			single = 0;
+    			death_accident = 0;
+    			old_death = 0;
+    			twins = 0;
+				triplets = 0;
+
+    			for (i = 0; i < dwellers.length; i++)
+    			{
+    				if (dwellers[i].alive === 1)
+    				{
+	    				//partnership
+	    				if (GetTrueWithProbability(PROBABILITY_OF_PARTNERSHIP) 
+	    					&& dwellers[i].partner === null 
+	    					&& dwellers[i].age >= AGE_OF_PARTNERSHIP
+	    				   )
+	    				{
+	    					for (j = 0; j < dwellers.length; j++)
+	    					{
+	    						if (dwellers[j].partner === null 
+	    							&& dwellers[j].age >= AGE_OF_PARTNERSHIP 
+	    							&& dwellers[j].sex !== dwellers[i].sex
+	    						   )
+	    						{
+	    							dwellers[i].partner = dwellers[j].id;
+	    							dwellers[j].partner = dwellers[i].id;
+	    							//console.log(year+': #'+dwellers[i].id+' & #'+dwellers[j].id+' now partners.');
+	    							partners ++;
+	    							break;
+	    						}
+	    					}
+	    				}
+
+	    				//childbith
+	    				if (dwellers[i].pregnant > 0)
+	    				{
+	    					for (j = 0; j < dwellers[i].pregnant; j++)
+	    					{
+	    						dwellers[dwellers.length] = new Dweller(dwellers.length, i, dwellers[i].father_of_child);
+	    						dwellers[i].count_of_child ++;
+	    						born ++;
+	    					}
+	    					dwellers[i].pregnant = 0;
+	    					//console.log(year+': #'+(dwellers.length-1)+' was born.');
+	    				}
+
+	    				//pregnancy
+	    				if (dwellers[i].sex === 'female'
+	    					&& dwellers_alive < VAULT_MAX_CAPACITY
+	    					&& dwellers[i].pregnant === 0 
+	    					&& dwellers[i].partner !== null 
+	    					&& dwellers[i].age >= AGE_OF_MAJORITY 
+	    					&& dwellers[i].count_of_child <3 
+	    					&& dwellers[i].age < AGE_OF_MENOPAUSE 
+	    					&& (
+	    						(dwellers[i].count_of_child === 0 && GetTrueWithProbability(PROBABILITY_OF_FIRST_PREGNANCY))
+	    						|| (dwellers[i].count_of_child > 0 && GetTrueWithProbability(PROBABILITY_OF_SECOND_PREGNANCY))
+	    					   )
+	    				   )
+	    				{
+	    					dwellers[i].pregnant = 1;
+	    					dwellers_alive ++;
+	    					if (GetTrueWithProbability(PROBABILITY_OF_TWINS))
+	    					{
+	    						dwellers[i].pregnant = 2;
+	    						dwellers_alive ++;
+	    						twins ++;
+	    					}
+	    					if (GetTrueWithProbability(PROBABILITY_OF_TRIPLETS))
+	    					{
+	    						dwellers[i].pregnant = 3;
+	    						dwellers_alive += 2;
+	    						triplets ++;
+	    					}
+	    					dwellers[i].father_of_child = dwellers[i].partner;
+	    					//console.log(year+': #'+i+' got pregnant.');
+	    					pregnant ++;
+	    				}
+
+	    				//partion
+	    				if (dwellers[i].partner !== null 
+	    					&& GetTrueWithProbability(PROBABILITY_OF_PARTIONG)
+	    				   )
+	    				{
+	    					dwellers[dwellers[i].partner].partner = null;
+	    					dwellers[i].partner = null;
+	    					//console.log(year+': #'+dwellers[i].id+' & #'+dwellers[j].id+' are single.');
+	    					single ++;
+	    				}
+	    			}
+    			}
+    			for (i = 0; i < dwellers.length; i++)
+    			{
+    				if (dwellers[i].alive === 1)
+    				{
+    					dwellers[i].age ++;
+
+    					//accident
+    					if (GetTrueWithProbability(PROBABILITY_OF_ACCIDENT))
+    					{
+    						dwellers[i].alive = 0;
+    						dwellers_alive --;
+    						//console.log(year+': #'+i+' died in an accident.');
+    						death_accident ++;
+    					}
+
+	    				if (dwellers[i].age > OLD_AGE_START 
+	    					&& GetTrueWithProbability((dwellers[i].age-OLD_AGE_START)*(100/(OLD_AGE_END-OLD_AGE_START)))
+	    				   )
+	    				{
+	    					dwellers[i].alive = 0;
+    						dwellers_alive --;
+    						//console.log(year+': #'+i+' died of old age.');
+							old_death ++;
+	    				}
+	    			}
+    			}
+    			console.log((year-WAR_YEAR) + ': ' 
+    						+ dwellers_alive + ' alive (' 
+    						+ old_death + ' old death, ' 
+    						+ death_accident + ' accident death, ' 
+    						+ born + ' born [' 
+    						+ twins + '/' + triplets
+    						+ '], ' + pregnant + ' pregnant)');
+    			year ++;
+    		}
+    	}
+    </script>
+  </head>
+  <body>
+  	
+  </body>
+</html>
